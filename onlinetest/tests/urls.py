@@ -24,6 +24,7 @@ urlpatterns = [
 
     path('student/test/list/', StudentTestListAPIView.as_view(), name='student-test-list'),
     path('student/test/start/<int:test_id>/', StartTestAPIView.as_view(), name='start-test'),
-
+    path('student/submit-answer/', SubmitAnswerView.as_view(), name='submit-answer'),
+    path('student/submit-test/', SubmitTestView.as_view(), name='submit-test'),
 
 ]

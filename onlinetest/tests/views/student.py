@@ -6,7 +6,7 @@ from rest_framework import status
 from django.shortcuts import get_object_or_404
 from ..serializers.student_serializers import *
 from django.utils import timezone
-
+from tests.utils  import calculate_and_submit_test
 
 
 
@@ -51,3 +51,45 @@ class StartTestAPIView(APIView):
             "total_marks": test.total_marks,
             "questions": question_data
         }, status=status.HTTP_201_CREATED)
+
+
+class SubmitAnswerView(APIView):
+    def post(self, request):
+        serializer = SubmitAnswerSerializer(data=request.data)
+        if serializer.is_valid():
+            session = serializer.validated_data["session"]
+            question = serializer.validated_data["question"]
+            selected_option = serializer.validated_data["selected_option"]
+
+            is_correct = (selected_option == question.correct_answer)
+
+            
+            StudentAnswer.objects.update_or_create(
+                session=session,
+                question=question,
+                defaults={
+                    "selected_option": selected_option,
+                    "is_correct": is_correct
+                }
+            )
+
+            return Response({"message": "Answer saved."}, status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
+class SubmitTestView(APIView):
+    def post(self, request):
+        serializer = SubmitTestSerializer(data=request.data)
+        if serializer.is_valid():
+            session = serializer.instance
+            calculate_and_submit_test(session)
+
+            return Response({
+                "message": "Test submitted successfully.",
+                "score": session.score
+            }, status=status.HTTP_200_OK)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
