@@ -14,6 +14,9 @@ urlpatterns = [
     path('tests/view/<int:pk>/', TestAPIView.as_view(), name="tests-view"),
     path('tests/questions/view/<int:test_id>/', QuestionListByTestAPIView.as_view(), name="tests-questions-view"),
     path('tests/delete/<int:pk>/', TestAPIView.as_view(), name="tests-view"),
+    path('generate/questions/', GenerateAIQuestionsAPIView.as_view(), name="generate-questions"),
+    path("tests/<int:test_id>/results/", TestResultsAPIView.as_view(), name="test-results"),
+
 
 
     path('questions/<int:test_id>/create/', QuestionAPIView.as_view(), name="tests-create"),

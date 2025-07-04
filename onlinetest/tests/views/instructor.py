@@ -5,7 +5,7 @@ from rest_framework import status
 from django.shortcuts import get_object_or_404
 from ..serializers.instructor_serializers import *
 
-
+from tests.utils import *
 
 class TestAPIView(APIView):
     permission_classes = [IsAuthenticated]
@@ -98,3 +98,61 @@ class QuestionAPIView(APIView):
 
         question.delete()
         return Response({"detail": "Question deleted."}, status=204)
+
+
+    
+
+class GenerateAIQuestionsAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = AIQuestionGenerationSerializer(data=request.data, context={'request': request})
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+       
+        test = serializer.validated_data['test']
+        num_questions = serializer.validated_data['number_of_questions']
+
+        ai_response = generate_questions_via_ai(test.title, num_questions)
+        print(ai_response)
+
+        if isinstance(ai_response, dict) and ai_response.get("error"):
+            return Response({"error": ai_response["error"]}, status=status.HTTP_502_BAD_GATEWAY)
+
+        try:
+            questions_data = json.loads(ai_response)
+        except json.JSONDecodeError:
+            return Response({"error": "Failed to parse AI response as JSON."}, status=500)
+
+        for q in questions_data:
+            try:
+                Question.objects.create(
+                    test=test,
+                    text=q['text'],
+                    options=q['options'],
+                    correct_answer=q['correct_answer']
+                )
+               
+            except Exception:
+                continue
+
+        return Response({
+            "message": f"questions generated and saved."
+        }, status=status.HTTP_201_CREATED)
+
+
+
+class TestResultsAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, test_id):
+        serializer = TestResultsRequestSerializer(data={'test_id': test_id}, context={'request': request})
+        
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        test = serializer.context['test']
+        sessions = StudentTestSession.objects.filter(test=test)
+        results_serializer = StudentTestResultSerializer(sessions, many=True)
+        return Response(results_serializer.data, status=200)

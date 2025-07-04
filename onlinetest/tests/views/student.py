@@ -7,7 +7,8 @@ from django.shortcuts import get_object_or_404
 from ..serializers.student_serializers import *
 from django.utils import timezone
 from tests.utils  import calculate_and_submit_test
-
+from datetime import timedelta
+from tests.tasks import *
 
 
 class StudentTestListAPIView(APIView):
@@ -38,6 +39,10 @@ class StartTestAPIView(APIView):
             test=test,
             start_time=timezone.now()
         )
+
+        end_time = session.start_time + timedelta(minutes=session.test.duration_minutes)
+        auto_submit_test.apply_async((session.id,), eta=end_time)
+
 
       
         questions = Question.objects.filter(test=test)
