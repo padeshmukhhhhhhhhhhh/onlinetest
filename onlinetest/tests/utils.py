@@ -7,23 +7,61 @@ import logging
 import requests
 import os
 import json
+from rest_framework.response import Response
+from rest_framework import status
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
+
+
+
 logger = logging.getLogger(__name__)
 
 load_dotenv()
 
+class CustomResponse(Response):
+    def __init__(self, st, message, data=None, errors=None, status_code=status.HTTP_200_OK):
+        response_data = {
+            "st": st,
+            "message": message
+            
+        }
+        
+        if st == 1:
+            response_data["data"] = data
+        elif st == 2:
+            response_data["errors"] = errors
+        
+        super().__init__(response_data, status=status_code)
+
 def generate_otp():
     return str(random.randint(100000, 999999))
 
-def send_otp_email(to_email, otp):
-    send_mail(
-        subject='Your OTP for Login',
-        message=f'Your OTP is: {otp}',
-        from_email='djnagomail@gmail.com',
-        recipient_list=[to_email],
-        fail_silently=False,
-    )
+# def send_otp_email(to_email, otp):
+#     send_mail(
+#         subject='Your OTP for Login',
+#         message=f'Your OTP is: {otp}',
+#         from_email='djnagomail@gmail.com',
+#         recipient_list=[to_email],
+#         fail_silently=False,
+#     )
 
+def send_otp_email(email, otp, user):
+    subject = 'Your OTP Code'
+    from_email = 'djnagomail@gmail.com'
+    to = [email]
 
+    
+    html_content = render_to_string('otp_email.html', {
+        'user': user,
+        'otp': otp
+    })
+
+    
+    text_content = f'Your OTP code is {otp}'
+
+    msg = EmailMultiAlternatives(subject, text_content, from_email, to)
+    msg.attach_alternative(html_content, "text/html")
+    msg.send()
 
 
 
@@ -93,7 +131,7 @@ def generate_questions_via_ai(title, num_questions):
     prompt = generate_questions_prompt(title, num_questions)
    
     try:
-        logging.info("Sending request to OpenRouter AI...")
+        
 
         headers = {
             "Authorization": f"Bearer {os.getenv('API_KEY')}",
@@ -114,7 +152,7 @@ def generate_questions_via_ai(title, num_questions):
 
         
         if response.status_code != 200:
-            logging.error(f"API Error: {response.status_code} - {response.text}")
+            
             return {"error": f"API request failed with status {response.status_code}"}
 
         
@@ -125,19 +163,19 @@ def generate_questions_via_ai(title, num_questions):
         tweet_summary = response_data['choices'][0]['message']['content']
         
        
-        logging.info("Successfully received summarized tweet.")
+       
         return tweet_summary
 
     except requests.exceptions.RequestException as e:
-        logging.error(f"Network error: {e}")
+        
         return {"error": "Network request failed"}
     
     except KeyError:
-        logging.error("Unexpected JSON structure in API response.")
+       
         return {"error": "Invalid API response format"}
     
     except Exception as e:
-        logging.error(f"Unexpected error: {e}")
+        
         return {"error": "An unexpected error occurred"}
 
 

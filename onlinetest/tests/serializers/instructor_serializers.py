@@ -71,7 +71,9 @@ class QuestionAccessValidator(serializers.Serializer):
         if question.test.instructor != user:
             raise serializers.ValidationError("You can only access your own questions.")
 
-        self.question = question
+        print(f"question deeeeer {question}")
+
+        data['question'] = question
         return data
 
 

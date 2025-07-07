@@ -3,20 +3,18 @@ from rest_framework.response import Response
 from rest_framework import status
 from ..serializers.common_serializers import *
 from tests.models import User
-from tests.utils import generate_otp, send_otp_email
+from tests.utils import *
 from rest_framework_simplejwt.tokens import RefreshToken
 
 
-    
+
 class RegisterAPIView(APIView):
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
-            return Response({
-                "message": "User registered successfully",
-            }, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return CustomResponse(1, "User registered successfully", status_code=status.HTTP_201_CREATED)
+        return CustomResponse(2, "Validation failed", errors=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
 
 
 class SendOTPAPIView(APIView):
@@ -30,11 +28,11 @@ class SendOTPAPIView(APIView):
             user.otp = otp
             user.save()
 
-            send_otp_email(email, otp)
-            return Response({"message": "OTP sent successfully to your email."}, status=status.HTTP_200_OK)
+            send_otp_email(email, otp,user)
+            return CustomResponse(1, "OTP sent successfully to your email.", status_code=status.HTTP_200_OK)
         
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
+        return CustomResponse(2, "Validation failed", errors=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
+        
 
 class VerifyOTPAPIView(APIView):
     def post(self, request):
@@ -54,8 +52,6 @@ class VerifyOTPAPIView(APIView):
                 "access": str(refresh.access_token),
             }
 
+            return CustomResponse(1, "OTP verified successfully!", data=data, status_code=status.HTTP_200_OK)
 
-
-            return Response({"message": "OTP verified successfully!","data":data}, status=status.HTTP_200_OK)
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return CustomResponse(2, "Validation failed", errors=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)

@@ -3,6 +3,14 @@ from tests.models import *
 
 
 
+class StudentTestListValidator(serializers.Serializer):
+    def validate(self, data):
+        user = self.context['request'].user
+        if user.role != 'student':
+            raise serializers.ValidationError("Only students can access this test list.")
+        return data
+
+
 class StudentTestListSerializer(serializers.ModelSerializer):
     total_questions = serializers.SerializerMethodField()
 
@@ -12,6 +20,15 @@ class StudentTestListSerializer(serializers.ModelSerializer):
 
     def get_total_questions(self, obj):
         return obj.questions.count()
+
+    def validate(self, data):
+        user = self.context['request'].user
+        
+        if user.role != 'student':
+            raise serializers.ValidationError("Only students can start tests.")
+
+     
+        return data
 
 
 
